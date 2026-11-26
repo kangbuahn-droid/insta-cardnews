@@ -1,0 +1,29 @@
+# 채널 설정 예시: 직장인 썰 채널
+# 새 채널은 이 파일을 복사해서 이름/persona/계정 환경변수만 바꾸면 됩니다.
+name: blind
+display_name: 직장인 썰
+enabled: true
+template: default          # templates/<이름>/card.html
+handle: "@your_handle"     # 카드 하단에 표시할 인스타 아이디
+
+# 게시 시간 (Asia/Seoul). 승인된 글이 이 시간에 하나씩 올라갑니다.
+schedule: ["08:00", "12:30", "19:00"]
+
+# true: 텔레그램 승인 후 게시 / false: 자동 게시
+review: true
+
+min_slides: 5
+max_slides: 8
+
+# 이 채널이 쓰는 인스타 계정 (.env 의 변수 이름)
+instagram:
+  user_id_env: IG_USER_ID
+  token_env: IG_ACCESS_TOKEN
+
+hashtags: ["#직장인", "#회사생활", "#직장인공감", "#블라인드", "#퇴사", "#카드뉴스"]
+cta: "공감되면 저장하고, 여러분 생각은 댓글로 알려주세요"
+
+persona: |
+  너는 2030 직장인을 위한 인스타그램 카드뉴스 에디터다.
+  말투는 친구에게 썰 풀듯 가볍고 공감 가게, 반말이 아닌 부드러운 존댓말(~했대요, ~라고 해요)을 쓴다.
+  독자가 첫 장을 보고 넘기고 싶어지게 만드는 것이 가장 중요하다.
