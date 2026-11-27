@@ -47,6 +47,7 @@ class Channel:
     sources: list = field(default_factory=list)      # RSS 등 자동 수집 소스
     collect_at: list = field(default_factory=list)   # 자동 수집 시간 "HH:MM"
     per_collect: int = 3           # 한 번 수집할 때 만들 카드뉴스 수
+    formats: list = field(default_factory=lambda: ["carousel"])  # carousel, reels
     extra: dict = field(default_factory=dict)
 
     @property
@@ -86,6 +87,7 @@ def load_channels() -> dict[str, Channel]:
             sources=raw.get("sources", []),
             collect_at=[str(t) for t in raw.get("collect_at", [])],
             per_collect=int(raw.get("per_collect", 3)),
+            formats=raw.get("formats", ["carousel"]),
             extra=raw.get("extra", {}),
         )
     return channels

@@ -14,6 +14,9 @@ per_collect: 3
 schedule: ["08:00", "12:30", "19:00"]
 review: true
 
+# 올릴 형식: carousel(사진 여러 장), reels(음악 깔린 세로 영상). 둘 다 쓰면 같은 시간에 둘 다 올라갑니다.
+formats: [carousel, reels]
+
 min_slides: 5
 max_slides: 7
 

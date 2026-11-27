@@ -48,7 +48,7 @@ def _wait_ready(container_id: str, token: str, timeout: int = 300) -> None:
             return
         if status in ("ERROR", "EXPIRED"):
             raise InstagramError(f"컨테이너 {container_id} 처리 실패: {status}")
-        time.sleep(3)
+        time.sleep(5)
     raise InstagramError(f"컨테이너 {container_id} 처리 시간 초과")
 
 
@@ -68,6 +68,15 @@ def publish_carousel(channel: Channel, image_urls: list[str], caption: str) -> s
                      media_type="CAROUSEL", children=",".join(children), caption=caption)
     _wait_ready(carousel["id"], token)
     published = _call("POST", f"{user_id}/media_publish", token, creation_id=carousel["id"])
+    return published["id"]
+
+
+def publish_reels(channel: Channel, video_url: str, caption: str) -> str:
+    token, user_id = _token(channel), channel.ig_user_id
+    container = _call("POST", f"{user_id}/media", token,
+                      media_type="REELS", video_url=video_url, caption=caption, share_to_feed="true")
+    _wait_ready(container["id"], token, timeout=600)  # 영상은 처리에 시간이 더 걸림
+    published = _call("POST", f"{user_id}/media_publish", token, creation_id=container["id"])
     return published["id"]
 
 

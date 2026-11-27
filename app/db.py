@@ -44,6 +44,10 @@ def connect() -> Iterator[sqlite3.Connection]:
     conn.row_factory = sqlite3.Row
     try:
         conn.executescript(SCHEMA)
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(posts)")}
+        for col in ("video", "video_url", "reels_media_id"):
+            if col not in cols:
+                conn.execute(f"ALTER TABLE posts ADD COLUMN {col} TEXT")
         yield conn
         conn.commit()
     finally:

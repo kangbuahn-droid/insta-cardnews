@@ -26,9 +26,10 @@ SCRIPT_SCHEMA = {
             },
         },
         "caption": {"type": "string"},
+        "mood": {"type": "string", "enum": ["upbeat", "calm", "serious", "tense"]},
         "hashtags": {"type": "array", "items": {"type": "string"}},
     },
-    "required": ["slides", "caption", "hashtags"],
+    "required": ["slides", "caption", "mood", "hashtags"],
     "additionalProperties": False,
 }
 
@@ -48,6 +49,7 @@ LAYOUT_RULES = """
 - type=reaction 은 채널 규칙에서 쓰라고 할 때만 쓴다.
 - 마지막은 type=outro: title 은 독자에게 던지는 질문, body 는 행동 유도 문구.
 - caption 은 인스타 본문용 3~5문장. 해시태그는 caption 에 넣지 말고 hashtags 에 5~10개.
+- mood 는 릴스 배경음악 분위기: upbeat(신기하고 반가운 소식) · calm(정보·팁) · serious(규제·사회적 영향·논란) · tense(사고·위험·경쟁 격화).
 """
 
 

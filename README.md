@@ -97,6 +97,13 @@ python main.py preview examples/sample_post.txt               # AI 작성까지 
 - 피드 주소가 바뀌어 실패하면 텔레그램으로 알려줍니다. `sources`에서 고치거나 빼면 됩니다.
 - 캡션 마지막 줄에 출처(매체명)가 자동으로 붙습니다.
 
+## 릴스 (음악 자동)
+채널 설정의 `formats: [carousel, reels]`이면 같은 카드로 9:16 세로 영상도 만듭니다. AI가 기사 분위기(upbeat·calm·serious·tense)를 정하고 `music/<분위기>/`에서 곡을 골라 깝니다. 곡 넣는 법은 `music/README.md` 참고.
+
+- 텔레그램 미리보기에 영상도 같이 오고, 승인하면 캐러셀과 릴스가 같은 시간에 올라갑니다.
+- 게시가 실패하면 `/retry 글번호`로 다시 시도합니다(이미 올라간 형식은 건너뜀).
+- 서버에서는 `insta-cardnews/music/` 폴더에 곡을 넣으면 됩니다.
+
 ## 새 채널 추가
 1. `channels/blind.yaml` 복사 → `name`, `persona`, `schedule`, `hashtags` 수정
 2. 다른 인스타 계정을 쓰면 `instagram.user_id_env`/`token_env`에 새 환경변수 이름을 적고 `.env`에 값 추가

@@ -44,13 +44,17 @@ def send_text(text: str, **kwargs) -> dict:
     return call("sendMessage", chat_id=chat_id(), text=text[:4000], **kwargs)
 
 
-def send_review(post_id: int, channel_name: str, images: list[Path], caption: str) -> int:
+def send_review(post_id: int, channel_name: str, images: list[Path], caption: str,
+                video: Path | None = None, video_note: str = "") -> int:
     media, files = [], {}
     for i, path in enumerate(images[:10]):
         key = f"img{i}"
         files[key] = (path.name, path.read_bytes(), "image/jpeg")
         media.append({"type": "photo", "media": f"attach://{key}"})
     call("sendMediaGroup", files=files, http_timeout=120, chat_id=chat_id(), media=json.dumps(media))
+    if video:
+        call("sendVideo", files={"video": (video.name, video.read_bytes(), "video/mp4")}, http_timeout=180,
+             chat_id=chat_id(), caption=f"릴스 미리보기 {video_note}"[:1000], supports_streaming="true")
 
     keyboard = {"inline_keyboard": [
         [{"text": "✅ 승인(예약)", "callback_data": f"approve:{post_id}"},

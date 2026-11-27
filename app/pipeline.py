@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import collector, db, ingest, instagram, renderer, storage, telegram, writer
+from . import collector, db, ingest, instagram, reels, renderer, storage, telegram, writer
 from .config import TZ, Channel, load_channels
 
 CHANNELS: dict[str, Channel] = load_channels()
@@ -30,8 +30,19 @@ def prepare(post_id: int, feedback: str | None = None) -> None:
         db.update(post_id, script=script, status="written", error=None)
         images = renderer.render(channel, script, post_id)
         db.update(post_id, images=[str(p) for p in images], status="rendered")
+        video, video_note = None, ""
+        if "reels" in channel.formats:
+            try:
+                mood = script.get("mood", "calm")
+                video, music = reels.make_video(channel, images, mood, images[0].parent / "reels.mp4")
+                db.update(post_id, video=str(video), video_url=None)
+                video_note = f"(분위기: {mood}, 음악: {music.name if music else '없음 - music 폴더에 곡을 넣어주세요'})"
+            except Exception as e:
+                traceback.print_exc()
+                _notify(f"#{post_id} 릴스 영상 생성 실패(캐러셀만 진행): {e}")
         if channel.review:
-            msg_id = telegram.send_review(post_id, channel.display_name, images, writer.full_caption(script))
+            msg_id = telegram.send_review(post_id, channel.display_name, images, writer.full_caption(script),
+                                          video, video_note)
             db.update(post_id, status="pending_review", review_message_id=msg_id)
         else:
             db.update(post_id, status="approved")
@@ -80,13 +91,24 @@ def publish(post_id: int) -> None:
         if not urls:
             urls = storage.upload([Path(p) for p in json.loads(row["images"])], f"{channel.name}/{post_id}")
             db.update(post_id, image_urls=urls)
-        media_id = instagram.publish_carousel(channel, urls, writer.full_caption(script))
-        db.update(post_id, status="published", ig_media_id=media_id, published_at=db.now())
-        _notify(f"#{post_id} 게시 완료 ({channel.display_name})")
+        caption = writer.full_caption(script)
+        done = []
+        if "carousel" in channel.formats and not row["ig_media_id"]:
+            media_id = instagram.publish_carousel(channel, urls, caption)
+            db.update(post_id, ig_media_id=media_id)
+            done.append("캐러셀")
+        if "reels" in channel.formats and row["video"] and not row["reels_media_id"]:
+            video_url = row["video_url"] or storage.upload([Path(row["video"])], f"{channel.name}/{post_id}")[0]
+            db.update(post_id, video_url=video_url)
+            reels_id = instagram.publish_reels(channel, video_url, caption)
+            db.update(post_id, reels_media_id=reels_id)
+            done.append("릴스")
+        db.update(post_id, status="published", published_at=db.now())
+        _notify(f"#{post_id} 게시 완료 ({channel.display_name}: {', '.join(done) or '이미 게시됨'})")
     except Exception as e:
         traceback.print_exc()
         db.update(post_id, status="failed", error=str(e))
-        _notify(f"#{post_id} 게시 실패: {e}")
+        _notify(f"#{post_id} 게시 실패: {e}\n다시 시도하려면 /retry {post_id}")
 
 
 def publish_due(now: datetime | None = None) -> None:
@@ -178,6 +200,14 @@ def _handle_message(msg: dict) -> None:
         telegram.send_text(f"[{CHANNELS[name].display_name}] 기사 수집 시작")
         run_collect(CHANNELS[name])
         prepare_new()
+        return
+    if text.startswith("/retry"):
+        parts = text.split()
+        if len(parts) > 1 and parts[1].isdigit() and db.get(int(parts[1])):
+            telegram.send_text(f"#{parts[1]} 다시 게시합니다")
+            publish(int(parts[1]))
+        else:
+            telegram.send_text("사용법: /retry 글번호")
         return
     if text.startswith("/status"):
         lines = []

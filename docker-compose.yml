@@ -6,3 +6,4 @@ services:
     volumes:
       - ./data:/app/data
       - ./inbox:/app/inbox
+      - ./music:/app/music
