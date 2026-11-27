@@ -78,7 +78,7 @@ def load_channels() -> dict[str, Channel]:
             review=bool(raw.get("review", True)),
             hashtags=raw.get("hashtags", []),
             cta=raw.get("cta", ""),
-            handle=raw.get("handle", ""),
+            handle=os.getenv("CARD_HANDLE", "").strip() or raw.get("handle", ""),  # .env 가 우선
             ig_user_id_env=ig.get("user_id_env", "IG_USER_ID"),
             ig_token_env=ig.get("token_env", "IG_ACCESS_TOKEN"),
             min_slides=int(raw.get("min_slides", 5)),

@@ -133,3 +133,13 @@ AI 뉴스 대신 지금 켜져 있는 채널입니다. 기사 수집 없이 AI�
 - 그림: 표지와 핵심 팁에는 주제 느낌의 AI 그림, 이미지 생성 팁에는 **슬라이드에 적힌 프롬프트로 실제로 만든 결과**가 들어갑니다.
 - 그림을 쓰려면 `.env` 에 `OPENAI_API_KEY` 를 넣으세요(platform.openai.com > API keys, 결제 수단 등록 필요). 장당 약 $0.04, 게시물당 최대 4장(`IMAGE_MAX_PER_POST`). 키가 없으면 그림 없이 디자인만으로 만듭니다.
 - AI 뉴스로 돌아가려면 `ai_news.yaml` 의 `enabled` 를 true, `ai_tips.yaml` 을 false 로.
+
+## 자동 업데이트 (서버에서 한 번만)
+
+```
+cd ~/insta-cardnews && git stash; git pull && bash scripts/install-auto-update.sh
+```
+
+- 이후 5분마다 GitHub 를 확인해서 새 코드가 있으면 받아서 다시 빌드·재시작하고, 텔레그램으로 "새 기능이 적용됐어요"를 보냅니다.
+- 서버에서 파일을 직접 고치지 마세요(업데이트 때 치워집니다). 설정은 `.env` 에: 카드 아이디는 `CARD_HANDLE`.
+- 기록: `data/auto-update.log`. 끄려면 `crontab -e` 에서 auto-update 줄 삭제.
