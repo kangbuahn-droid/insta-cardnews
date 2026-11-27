@@ -121,3 +121,15 @@ python main.py preview examples/sample_post.txt               # AI 작성까지 
 - 최근 30일 동안 반응 좋았던 주제와 낮았던 주제를 기사 선별 AI에게 알려줘서, 반응 좋은 성격의 기사를 더 고릅니다.
 - 점수 = 팔로우×10 + 공유×5 + 저장×4 + 댓글×2 + 좋아요, 도달 1000명당으로 환산.
 - 인스타 토큰에 `instagram_business_manage_insights` 권한이 있어야 합니다. 없으면 봇이 오류를 알려주니, Meta 앱의 Instagram API 설정에서 권한을 추가하고 토큰을 다시 생성하세요.
+
+
+## AI 꿀팁 채널 (ai_tips)
+
+AI 뉴스 대신 지금 켜져 있는 채널입니다. 기사 수집 없이 AI가 매일 06:30에 팁 주제 3개를 기획하고, 카드뉴스와 릴스를 만듭니다.
+
+- 주제 분야는 `channels/ai_tips.yaml` 의 `topics` 에서 고칩니다. 이미 다룬 주제는 피합니다.
+- 원하는 주제로 바로 만들기: 텔레그램에 `/tip 미드저니로 제품 사진 찍는 프롬프트`
+- 각 팁에는 복사해서 쓰는 프롬프트 상자가 들어갑니다.
+- 그림: 표지와 핵심 팁에는 주제 느낌의 AI 그림, 이미지 생성 팁에는 **슬라이드에 적힌 프롬프트로 실제로 만든 결과**가 들어갑니다.
+- 그림을 쓰려면 `.env` 에 `OPENAI_API_KEY` 를 넣으세요(platform.openai.com > API keys, 결제 수단 등록 필요). 장당 약 $0.04, 게시물당 최대 4장(`IMAGE_MAX_PER_POST`). 키가 없으면 그림 없이 디자인만으로 만듭니다.
+- AI 뉴스로 돌아가려면 `ai_news.yaml` 의 `enabled` 를 true, `ai_tips.yaml` 을 false 로.

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import collector, db, ingest, instagram, performance, reels, renderer, storage, telegram, writer
+from . import collector, db, images as imagegen, ingest, instagram, performance, planner, reels, renderer, storage, telegram, writer
 from .config import TZ, Channel, load_channels
 
 CHANNELS: dict[str, Channel] = load_channels()
@@ -29,6 +29,10 @@ def prepare(post_id: int, feedback: str | None = None) -> None:
     try:
         script = writer.write_script(channel, json.loads(row["source"]), feedback)
         db.update(post_id, script=script, status="written", error=None)
+        art_warnings = imagegen.for_script(channel, script, renderer.out_dir(channel, post_id) / "art")
+        if art_warnings:
+            _notify(f"#{post_id} 그림 일부를 못 만들어서 디자인만으로 채웠어요:\n" + "\n".join(art_warnings[:3]))
+        db.update(post_id, script=script)
         images = renderer.render(channel, script, post_id)
         db.update(post_id, images=[str(p) for p in images], status="rendered")
         video, video_note = None, ""
@@ -56,12 +60,16 @@ def prepare(post_id: int, feedback: str | None = None) -> None:
 
 def run_collect(channel: Channel, k: int | None = None) -> None:
     try:
-        ids, warnings = collector.collect(channel, k)
+        if channel.sources:
+            ids, warnings = collector.collect(channel, k)
+        else:
+            ids, warnings = planner.plan(channel, k)
     except Exception as e:
         traceback.print_exc()
         _notify(f"[{channel.display_name}] 자동 수집 실패: {e}")
         return
-    msg = f"[{channel.display_name}] 기사 {len(ids)}개 수집, 카드 만드는 중"
+    what = "기사" if channel.sources else "주제"
+    msg = f"[{channel.display_name}] {what} {len(ids)}개 준비, 카드 만드는 중"
     if warnings:
         msg += "\n" + "\n".join(f"- {w}" for w in warnings[:5])
     _notify(msg)
@@ -70,7 +78,7 @@ def run_collect(channel: Channel, k: int | None = None) -> None:
 def collect_due(now: datetime | None = None) -> None:
     now = now or datetime.now(ZoneInfo(TZ))
     for channel in CHANNELS.values():
-        if channel.sources and collector.due(channel, now):
+        if (channel.sources or channel.topics) and collector.due(channel, now):
             run_collect(channel)
 
 
@@ -204,19 +212,32 @@ def _handle_message(msg: dict) -> None:
     if text.startswith("/start") or text.startswith("/help"):
         telegram.send_text(
             "블라인드 글을 그대로 붙여넣어 보내주세요.\n첫 줄 = 제목, 본문, 그리고 '---' 아래에 댓글을 한 줄씩.\n"
-            f"채널 지정: 첫 줄에 #채널이름 (가능: {', '.join(CHANNELS)})\n/collect 뉴스 바로 수집\n/status 대기열 확인\n/report 최근 7일 성과(/report 30 처럼 기간 지정)"
+            f"채널 지정: 첫 줄에 #채널이름 (가능: {', '.join(CHANNELS)})\n/collect 새 콘텐츠 바로 만들기\n/tip 주제 원하는 주제로 하나 만들기\n/status 대기열 확인\n/report 최근 7일 성과(/report 30 처럼 기간 지정)"
         )
         return
     if text.startswith("/collect"):
         parts = text.split()
-        names = [n for n in CHANNELS if CHANNELS[n].sources]
+        names = [n for n in CHANNELS if CHANNELS[n].sources or CHANNELS[n].topics]
         name = parts[1] if len(parts) > 1 and parts[1] in names else (names[0] if names else None)
         if not name:
             telegram.send_text("자동 수집 소스가 있는 채널이 없어요.")
             return
-        telegram.send_text(f"[{CHANNELS[name].display_name}] 기사 수집 시작")
+        telegram.send_text(f"[{CHANNELS[name].display_name}] 새 콘텐츠 준비 시작")
         run_collect(CHANNELS[name])
         prepare_new()
+        return
+    if text.startswith("/tip"):
+        idea = text[4:].strip()
+        name = next((n for n, c in CHANNELS.items() if c.topics), None)
+        if not name or len(idea) < 4:
+            telegram.send_text("사용법: /tip 만들고 싶은 주제 (예: /tip 미드저니로 제품 사진 찍는 프롬프트)")
+            return
+        ids, _ = planner.plan(CHANNELS[name], 1, idea=idea)
+        if ids:
+            telegram.send_text(f"#{ids[0]} 주제 접수했어요. 카드 만드는 중…")
+            prepare(ids[0])
+        else:
+            telegram.send_text("이미 같은 제목의 글이 있어서 만들지 않았어요. 조금 다르게 적어 주세요.")
         return
     if text.startswith("/retry"):
         parts = text.split()
@@ -251,7 +272,7 @@ def _handle_message(msg: dict) -> None:
     if len(text) < 80:
         telegram.send_text("글이 너무 짧아요. 제목과 본문을 함께 보내주세요. (/help)")
         return
-    channel = next((n for n, c in CHANNELS.items() if not c.sources), next(iter(CHANNELS)))
+    channel = next((n for n, c in CHANNELS.items() if not c.sources and not c.topics), next(iter(CHANNELS)))
     first, _, rest = text.partition("\n")
     if first.startswith("#") and first[1:].strip() in CHANNELS:
         channel, text = first[1:].strip(), rest

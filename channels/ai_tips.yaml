@@ -1,0 +1,67 @@
+# AI 팁 채널: 소스 없이 AI가 매일 팁 주제를 기획 → 카드뉴스 + 릴스
+# 슬라이드마다 어울리는 그림을 AI 이미지 생성으로 만든다(.env 의 OPENAI_API_KEY 또는 GEMINI_API_KEY).
+name: ai_tips
+display_name: AI 꿀팁
+enabled: true
+template: tips
+cover_label: 저장해두고 따라하기
+handle: "@your_handle"
+
+# 매일 기획 시간과 한 번에 만들 개수. 텔레그램 /collect 로 바로, /tip 주제 로 원하는 주제를 만들 수도 있어요.
+collect_at: ["06:30"]
+per_collect: 3
+
+schedule: ["08:00", "12:30", "19:00"]
+review: true
+formats: [carousel, reels]
+
+min_slides: 6
+max_slides: 8
+
+instagram:
+  user_id_env: IG_USER_ID
+  token_env: IG_ACCESS_TOKEN
+
+# 주제 분야. 자유롭게 추가·삭제하세요.
+topics:
+  - ChatGPT·Claude·Gemini 업무 활용 팁
+  - 그대로 복사해 쓰는 프롬프트 모음
+  - 이미지 생성 프롬프트 팁 (스타일, 구도, 조명)
+  - 엑셀·PPT·메일 등 사무 업무 AI 자동화
+  - 무료로 쓸 수 있는 AI 도구 소개
+  - 영상·음악 생성 AI 활용
+  - AI 쓸 때 흔한 실수와 해결법
+  - 공부·자기계발에 AI 쓰는 법
+
+# AI 그림 기본 그림체(분위기 그림에만 적용, 이미지 생성 예시 그림에는 적용 안 함)
+image_style: >
+  Modern editorial 3D illustration, soft studio lighting, clean composition, vibrant but tasteful colors,
+  subtle depth of field, high detail, Instagram-friendly
+
+hashtags: ["#AI", "#AI활용", "#AI꿀팁", "#챗GPT", "#프롬프트", "#이미지생성", "#업무자동화", "#카드뉴스"]
+cta: "나중에 따라하려면 저장, 매일 AI 꿀팁 받으려면 팔로우"
+
+persona: |
+  너는 바쁜 직장인·학생을 위한 인스타그램 'AI 꿀팁' 카드뉴스 에디터다.
+  AI를 처음 써보는 사람도 바로 따라 할 수 있게 쉬운 말과 구체적인 예시로 쓰고, 부드러운 존댓말(~해요, ~해보세요)을 쓴다.
+  목표는 "이건 저장해둬야겠다"는 반응이다. 막연한 조언 대신 복사해서 바로 쓰는 프롬프트와 단계를 준다.
+
+pick_rules: |
+  [주제 기획 기준]
+  - 누구나 무료 또는 기본 요금제로 바로 따라 할 수 있는 것.
+  - 한 게시물 = 한 가지 목적(예: "회의록 5분 만에 정리", "제품 사진을 스튜디오 느낌으로").
+  - 제목에 결과나 숫자를 넣어 구체적으로(예: "보고서 퀄리티 올리는 프롬프트 5개").
+  - 특정 서비스의 최신 요금·출시일처럼 자주 바뀌는 정보는 주제로 삼지 않는다.
+
+write_rules: |
+  1. 구성: 표지 → 왜 필요한지 1장 → 팁/단계 4~5장 → 마무리. type=reaction 은 쓰지 않는다.
+  2. 팁 슬라이드는 title=팁 이름, body=설명 2~3문장(90자 이내), prompt=그대로 복사해 쓸 프롬프트 예시(120자 이내).
+     프롬프트가 필요 없는 장은 prompt="".
+  3. 이미지 생성 팁이면 prompt 는 실제로 쓸 영어 프롬프트(40단어 이내)로 쓰고, image_mode="example", image=그 prompt 와 같은 내용.
+     그러면 그 프롬프트로 만든 실제 결과 그림이 슬라이드에 들어간다.
+  4. 그 외에는 표지와 핵심 팁 1~2장만 image_mode="illustration", image=그 장의 느낌을 주는 장면을 영어 한 문장으로 묘사
+     (예: "a laptop on a desk with glowing chat bubbles floating above it"). 글자·로고·실존 인물·브랜드 로고는 그리지 않게 묘사한다.
+     나머지 장은 image_mode="none".
+  5. 기능은 널리 알려진 것만 쓴다. 확실하지 않은 메뉴 이름·요금·버전은 쓰지 않는다.
+  6. caption 은 "이런 분께 추천" 한 줄 + 요약 2~3문장 + "저장해두고 하나씩 따라 해보세요".
+  7. keyword 는 주제를 나타내는 영어 대문자 단어(예: PROMPT, IMAGE, EXCEL, CLAUDE).

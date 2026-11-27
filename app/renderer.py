@@ -1,6 +1,8 @@
 """슬라이드 JSON → 1080×1350 JPEG 이미지."""
 from __future__ import annotations
 
+import base64
+import mimetypes
 import os
 import re
 from pathlib import Path
@@ -20,9 +22,18 @@ def _highlight(text: str) -> Markup:
     return Markup(re.sub(r"\*(.+?)\*", r"<em>\1</em>", safe))
 
 
+def _data_uri(path: str | None) -> str:
+    """로컬 그림 파일을 HTML 에 바로 넣을 수 있게 data: 주소로 바꾼다."""
+    if not path or not Path(path).exists():
+        return ""
+    mime = mimetypes.guess_type(path)[0] or "image/png"
+    return f"data:{mime};base64," + base64.b64encode(Path(path).read_bytes()).decode()
+
+
 def _env() -> Environment:
     env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=select_autoescape(["html"]))
     env.filters["highlight"] = _highlight
+    env.filters["data_uri"] = _data_uri
     return env
 
 
@@ -50,9 +61,13 @@ def render_html(channel: Channel, script: dict) -> list[str]:
     return pages
 
 
+def out_dir(channel: Channel, post_id: int | str) -> Path:
+    return DATA_DIR / "images" / f"{channel.name}-{post_id}"
+
+
 def render(channel: Channel, script: dict, post_id: int | str) -> list[Path]:
-    out_dir = DATA_DIR / "images" / f"{channel.name}-{post_id}"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir_ = out_dir(channel, post_id)
+    out_dir_.mkdir(parents=True, exist_ok=True)
     paths: list[Path] = []
     with sync_playwright() as p:
         # CHROMIUM_PATH 가 있으면 그 브라우저 사용(Docker 이미지에서는 비워둠)
@@ -61,7 +76,7 @@ def render(channel: Channel, script: dict, post_id: int | str) -> list[Path]:
         for i, html in enumerate(render_html(channel, script), start=1):
             page.set_content(html, wait_until="networkidle")
             page.evaluate("document.fonts.ready")
-            path = out_dir / f"{i:02d}.jpg"
+            path = out_dir_ / f"{i:02d}.jpg"
             page.screenshot(path=str(path), type="jpeg", quality=92, full_page=False)
             paths.append(path)
         browser.close()

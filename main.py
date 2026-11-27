@@ -55,6 +55,18 @@ def preflight() -> list[str]:
             else:
                 problems.append(f"Instagram rejected IG_ACCESS_TOKEN / IG_USER_ID: {err[:100]}. "
                                 "Generate a new token and copy it with the Copy button")
+    oa = os.getenv("OPENAI_API_KEY", "").strip()
+    if not oa and not os.getenv("GEMINI_API_KEY", "").strip():
+        print("[warn] OPENAI_API_KEY is empty - cards will be made without AI pictures", flush=True)
+    elif oa:
+        try:
+            r = httpx.get("https://api.openai.com/v1/models", headers={"Authorization": f"Bearer {oa}"}, timeout=20)
+            if r.status_code == 401:
+                print("[warn] OPENAI_API_KEY is wrong (401) - cards will be made without AI pictures", flush=True)
+            else:
+                print("[run] OpenAI key OK", flush=True)
+        except Exception as e:
+            print(f"[warn] could not check OpenAI key: {e}", flush=True)
     return problems
 
 

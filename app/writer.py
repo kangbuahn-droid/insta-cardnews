@@ -20,8 +20,14 @@ SCRIPT_SCHEMA = {
                     "type": {"type": "string", "enum": ["cover", "content", "reaction", "outro"]},
                     "title": {"type": "string"},
                     "body": {"type": "string"},
+                    # 따라 입력해볼 프롬프트 예시(없으면 빈 문자열)
+                    "prompt": {"type": "string"},
+                    # 슬라이드에 넣을 그림: none / illustration(분위기 그림) / example(prompt 를 실제로 넣은 결과)
+                    "image_mode": {"type": "string", "enum": ["none", "illustration", "example"]},
+                    # 이미지 생성용 영어 설명(image_mode 가 none 이면 빈 문자열)
+                    "image": {"type": "string"},
                 },
-                "required": ["type", "title", "body"],
+                "required": ["type", "title", "body", "prompt", "image_mode", "image"],
                 "additionalProperties": False,
             },
         },
@@ -53,6 +59,7 @@ LAYOUT_RULES = """
 - caption 은 인스타 본문용 3~5문장. 해시태그는 caption 에 넣지 말고 hashtags 에 5~10개.
 - keyword 는 표지 배경에 크게 깔릴 영어 대문자 단어 하나(2~8자, 예: OPENAI, CHIP, ROBOT, LAW). 기사 핵심 대상.
 - emoji 는 기사 주제를 나타내는 이모지 딱 1개(예: 🤖 💸 ⚖️ 🔥 📱).
+- 각 슬라이드의 prompt, image_mode, image 는 채널 규칙에서 쓰라고 할 때만 채운다. 아니면 prompt="", image_mode="none", image="".
 - mood 는 배경 색감과 릴스 배경음악 분위기: upbeat(신기하고 반가운 소식) · calm(정보·팁) · serious(규제·사회적 영향·논란) · tense(사고·위험·경쟁 격화).
 """
 

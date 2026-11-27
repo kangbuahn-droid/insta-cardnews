@@ -1,0 +1,51 @@
+{
+  "slides": [
+    {
+      "type": "cover",
+      "title": "제품 사진, *프롬프트 한 줄*이면 스튜디오급",
+      "body": "이미지 생성 AI로 상세페이지 사진 만들기",
+      "prompt": "",
+      "image_mode": "illustration",
+      "image": "a glowing camera floating above a laptop"
+    },
+    {
+      "type": "content",
+      "title": "왜 프롬프트가 중요할까요?",
+      "body": "같은 AI라도 조명·배경·구도를 말해주느냐에 따라 결과가 완전히 달라져요.",
+      "prompt": "",
+      "image_mode": "none",
+      "image": ""
+    },
+    {
+      "type": "content",
+      "title": "조명을 구체적으로",
+      "body": "'soft studio lighting'처럼 빛의 종류를 넣으면 고급스러운 느낌이 나요.",
+      "prompt": "A ceramic coffee mug on a beige linen table, soft studio lighting, warm morning tones, minimal background, product photography",
+      "image_mode": "example",
+      "image": "a ceramic coffee mug product photo"
+    },
+    {
+      "type": "content",
+      "title": "원하는 결과를 먼저 말하기",
+      "body": "'상세페이지 대표 이미지'처럼 용도를 알려주면 구도를 알아서 잡아줘요.",
+      "prompt": "쇼핑몰 상세페이지 대표 이미지로 쓸 거야. 흰 배경, 정면 구도, 그림자는 부드럽게.",
+      "image_mode": "none",
+      "image": ""
+    },
+    {
+      "type": "outro",
+      "title": "오늘 팁, 어떤 제품에 써보고 싶나요?",
+      "body": "저장해두고 하나씩 따라 해보세요",
+      "prompt": "",
+      "image_mode": "none",
+      "image": ""
+    }
+  ],
+  "caption": "샘플",
+  "mood": "upbeat",
+  "keyword": "PROMPT",
+  "emoji": "📸",
+  "hashtags": [
+    "#AI"
+  ]
+}
