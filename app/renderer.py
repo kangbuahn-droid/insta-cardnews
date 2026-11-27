@@ -42,6 +42,9 @@ def render_html(channel: Channel, script: dict) -> list[str]:
                 channel_name=channel.display_name,
                 handle=channel.handle,
                 cover_label=channel.cover_label,
+                mood=script.get("mood", "calm"),
+                keyword=script.get("keyword", ""),
+                emoji=script.get("emoji", ""),
             )
         )
     return pages
