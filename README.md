@@ -44,7 +44,16 @@
 
 ## 실행
 
-### 서버(권장)
+### 내 Windows 컴퓨터에서
+1. [Python 3.12](https://www.python.org/downloads/) 설치 (설치 첫 화면에서 **Add python.exe to PATH** 체크)
+2. 이 저장소를 ZIP으로 내려받아 압축 해제 (또는 `git clone`)
+3. `setup.bat` 더블클릭 → 설치 후 메모장이 열리면 키 값 입력·저장
+4. `preview.bat` 으로 카드 디자인 확인 (선택)
+5. `start.bat` 더블클릭 → 창이 열려 있는 동안 봇이 동작
+
+컴퓨터가 절전 모드로 들어가면 멈추니, 설정 → 전원에서 절전을 '안 함'으로 두세요.
+
+### 서버
 ```bash
 cp .env.example .env   # 값 채우기
 docker compose up -d --build
