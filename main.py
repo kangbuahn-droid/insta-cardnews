@@ -39,6 +39,26 @@ def preflight() -> list[str]:
                                 "Copy the whole token from BotFather again, e.g. 123456789:AAH...")
         except Exception as e:
             print(f"[warn] could not check Telegram token: {e}", flush=True)
+    ig_id = os.getenv("IG_USER_ID", "").strip()
+    if ig_id and not ig_id.isdigit():
+        problems.append(f"IG_USER_ID must be a number, not the account name ('{ig_id[:20]}')")
+    ig_token = os.getenv("IG_ACCESS_TOKEN", "").strip()
+    host = os.getenv("IG_GRAPH_HOST", "graph.instagram.com")
+    version = os.getenv("IG_API_VERSION", "v23.0")
+    if ig_token:
+        try:
+            r = httpx.get(f"https://{host}/{version}/me", params={"fields": "user_id,username",
+                          "access_token": ig_token}, timeout=20)
+            data = r.json()
+            if "error" in data and data["error"].get("code") != 190:
+                print(f"[warn] Instagram check: {data['error'].get('message', '')[:120]}", flush=True)
+            elif "error" in data:
+                problems.append("IG_ACCESS_TOKEN is wrong: " + data["error"].get("message", "")[:80]
+                                + ". Generate a new token in Meta app > Instagram API > Generate token")
+            elif data.get("user_id") and str(data["user_id"]) != ig_id:
+                problems.append(f"IG_USER_ID should be {data['user_id']} (account @{data.get('username')})")
+        except Exception as e:
+            print(f"[warn] could not check Instagram token: {e}", flush=True)
     return problems
 
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -163,7 +164,7 @@ def _handle_button(cb: dict) -> None:
         db.update(post_id, status="approved")
         publish(post_id)
     elif action == "discard":
-        db.update(post_id, status="discarded")
+        db.update(post_id, status="discarded", source="{}", script=None)  # 원문은 지움
         telegram.answer_callback(cb["id"], "폐기했어요")
         telegram.clear_buttons(msg_id, "🗑 폐기됨")
     elif action == "rewrite":
@@ -174,6 +175,18 @@ def _handle_button(cb: dict) -> None:
         )
         db.kv_set(f"feedback_msg:{ask['message_id']}", str(post_id))
         telegram.clear_buttons(msg_id, "✏️ 재작성 요청됨")
+
+
+SECRET_PATTERNS = [
+    re.compile(r"^\s*[A-Z][A-Z0-9_]{2,}\s*=", re.M),          # .env 형식 줄
+    re.compile(r"\b\d{6,}:[A-Za-z0-9_-]{30,}\b"),            # 텔레그램 봇 토큰
+    re.compile(r"sk-ant-[A-Za-z0-9_-]{10,}"),                  # Claude 키
+    re.compile(r"\bIG[A-Za-z0-9]{100,}"),                     # 인스타 토큰
+]
+
+
+def _looks_like_secret(text: str) -> bool:
+    return any(p.search(text) for p in SECRET_PATTERNS)
 
 
 def _handle_message(msg: dict) -> None:
@@ -215,6 +228,12 @@ def _handle_message(msg: dict) -> None:
             counts = {s: len(db.by_status(s, name)) for s in ("pending_review", "approved", "failed")}
             lines.append(f"{name}: 검수대기 {counts['pending_review']} · 예약 {counts['approved']} · 실패 {counts['failed']}")
         telegram.send_text("\n".join(lines))
+        return
+    if _looks_like_secret(text):
+        telegram.send_text(
+            "설정값(토큰·키)처럼 보이는 메시지라 기사로 처리하지 않았어요.\n"
+            "이 대화에 키를 보내면 안 돼요. 방금 메시지는 길게 눌러 삭제하고, 노출된 키는 재발급하는 걸 권해요."
+        )
         return
     if len(text) < 80:
         telegram.send_text("글이 너무 짧아요. 제목과 본문을 함께 보내주세요. (/help)")
