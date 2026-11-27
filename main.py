@@ -45,7 +45,11 @@ def preflight() -> list[str]:
     ig_token = os.getenv("IG_ACCESS_TOKEN", "").strip()
     host = os.getenv("IG_GRAPH_HOST", "graph.instagram.com")
     version = os.getenv("IG_API_VERSION", "v23.0")
-    if ig_token:
+    if ig_token.startswith("EAA") and host == "graph.instagram.com":
+        problems.append("IG_ACCESS_TOKEN starts with EAA = Facebook token. This bot needs the Instagram "
+                        "token that starts with IGAA: Meta app > Instagram > API setup with Instagram login "
+                        "> 2. Generate access token > Generate token")
+    elif ig_token:
         try:
             r = httpx.get(f"https://{host}/{version}/me", params={"fields": "user_id,username",
                           "access_token": ig_token}, timeout=20)
