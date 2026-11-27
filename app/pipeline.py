@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import traceback
 from datetime import datetime, timedelta
@@ -22,6 +23,33 @@ def _notify(text: str) -> None:
 
 
 # ---------- 작성 + 렌더 + 검수 요청 ----------
+
+def auto_mode(channel: Channel) -> bool:
+    """자동 게시 여부. 텔레그램 /auto on|off 가 우선, 없으면 .env AUTO_APPROVE(기본 on)."""
+    v = db.kv_get(f"auto:{channel.name}")
+    if v is None:
+        v = os.getenv("AUTO_APPROVE", "on")
+    return v.strip().lower() in ("1", "on", "true", "yes")
+
+
+def next_slot(channel: Channel, now: datetime | None = None) -> str:
+    now = now or datetime.now(ZoneInfo(TZ))
+    queued = len(db.by_status("approved", channel.name))  # 이 글 앞에 기다리는 글 수(자기 포함)
+    slots = sorted(channel.schedule)
+    day, found = 0, 0
+    while day < 30:
+        for slot in slots:
+            hh, mm = map(int, slot.split(":"))
+            t = (now + timedelta(days=day)).replace(hour=hh, minute=mm, second=0, microsecond=0)
+            if t < now:
+                continue
+            found += 1
+            if found >= max(queued, 1):
+                label = "오늘" if day == 0 else "내일" if day == 1 else f"{t:%m/%d}"
+                return f"{label} {slot} 게시 예정"
+        day += 1
+    return "다음 게시 시간에 게시"
+
 
 def prepare(post_id: int, feedback: str | None = None) -> None:
     row = db.get(post_id)
@@ -46,12 +74,22 @@ def prepare(post_id: int, feedback: str | None = None) -> None:
             except Exception as e:
                 traceback.print_exc()
                 _notify(f"#{post_id} 릴스 영상 생성 실패(캐러셀만 진행): {e}")
-        if channel.review:
-            msg_id = telegram.send_review(post_id, channel.display_name, images, writer.full_caption(script),
-                                          video, video_note)
-            db.update(post_id, status="pending_review", review_message_id=msg_id)
-        else:
+        problems = list(art_warnings)
+        if "reels" in channel.formats and not video:
+            problems.append("릴스 영상 없음")
+        caption = writer.full_caption(script)
+        if not channel.review:
             db.update(post_id, status="approved")
+        elif auto_mode(channel) and not problems:
+            db.update(post_id, status="approved")
+            msg_id = telegram.send_review(post_id, channel.display_name, images, caption, video, video_note,
+                                          auto_note=next_slot(channel))
+            db.update(post_id, review_message_id=msg_id)
+        else:
+            if auto_mode(channel):
+                _notify(f"#{post_id} 문제가 있어서 자동 게시하지 않고 검수로 넘겼어요: {', '.join(problems)}")
+            msg_id = telegram.send_review(post_id, channel.display_name, images, caption, video, video_note)
+            db.update(post_id, status="pending_review", review_message_id=msg_id)
         print(f"[prepare] #{post_id} 완료")
     except Exception as e:
         traceback.print_exc()
@@ -213,7 +251,7 @@ def _handle_message(msg: dict) -> None:
     if text.startswith("/start") or text.startswith("/help"):
         telegram.send_text(
             "블라인드 글을 그대로 붙여넣어 보내주세요.\n첫 줄 = 제목, 본문, 그리고 '---' 아래에 댓글을 한 줄씩.\n"
-            f"채널 지정: 첫 줄에 #채널이름 (가능: {', '.join(CHANNELS)})\n/collect 새 콘텐츠 바로 만들기\n/tip 주제 원하는 주제로 하나 만들기\n/status 대기열 확인\n/report 최근 7일 성과(/report 30 처럼 기간 지정)"
+            f"채널 지정: 첫 줄에 #채널이름 (가능: {', '.join(CHANNELS)})\n/collect 새 콘텐츠 바로 만들기\n/tip 주제 원하는 주제로 하나 만들기\n/auto on·off 자동 게시 켜기·끄기\n/status 대기열 확인\n/report 최근 7일 성과(/report 30 처럼 기간 지정)"
         )
         return
     if text.startswith("/collect"):
@@ -240,6 +278,18 @@ def _handle_message(msg: dict) -> None:
         else:
             telegram.send_text("이미 같은 제목의 글이 있어서 만들지 않았어요. 조금 다르게 적어 주세요.")
         return
+    if text.startswith("/auto"):
+        arg = text[5:].strip().lower()
+        for ch in CHANNELS.values():
+            if arg in ("on", "off", "켜", "꺼"):
+                db.kv_set(f"auto:{ch.name}", "on" if arg in ("on", "켜") else "off")
+        on = all(auto_mode(ch) for ch in CHANNELS.values())
+        telegram.send_text(
+            ("🤖 자동 게시 켜짐: 만든 글이 미리보기와 함께 바로 예약되고, 게시 시간에 자동으로 올라가요.\n"
+             "올리기 싫은 글은 미리보기의 '취소' 버튼을 누르세요.\n끄려면 /auto off")
+            if on else
+            "🙋 자동 게시 꺼짐: 글마다 승인 버튼을 눌러야 올라가요.\n켜려면 /auto on")
+        return
     if text.startswith("/retry"):
         parts = text.split()
         if len(parts) > 1 and parts[1].isdigit() and db.get(int(parts[1])):
@@ -261,7 +311,8 @@ def _handle_message(msg: dict) -> None:
         lines = []
         for name in CHANNELS:
             counts = {s: len(db.by_status(s, name)) for s in ("pending_review", "approved", "failed")}
-            lines.append(f"{name}: 검수대기 {counts['pending_review']} · 예약 {counts['approved']} · 실패 {counts['failed']}")
+            mode = "자동 게시" if auto_mode(CHANNELS[name]) else "승인 후 게시"
+            lines.append(f"{name} ({mode}): 검수대기 {counts['pending_review']} · 예약 {counts['approved']} · 실패 {counts['failed']}")
         telegram.send_text("\n".join(lines))
         return
     if _looks_like_secret(text):

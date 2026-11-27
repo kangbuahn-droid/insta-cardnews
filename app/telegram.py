@@ -45,7 +45,7 @@ def send_text(text: str, **kwargs) -> dict:
 
 
 def send_review(post_id: int, channel_name: str, images: list[Path], caption: str,
-                video: Path | None = None, video_note: str = "") -> int:
+                video: Path | None = None, video_note: str = "", auto_note: str = "") -> int:
     media, files = [], {}
     for i, path in enumerate(images[:10]):
         key = f"img{i}"
@@ -56,13 +56,22 @@ def send_review(post_id: int, channel_name: str, images: list[Path], caption: st
         call("sendVideo", files={"video": (video.name, video.read_bytes(), "video/mp4")}, http_timeout=180,
              chat_id=chat_id(), caption=f"릴스 미리보기 {video_note}"[:1000], supports_streaming="true")
 
-    keyboard = {"inline_keyboard": [
-        [{"text": "✅ 승인(예약)", "callback_data": f"approve:{post_id}"},
-         {"text": "🚀 지금 게시", "callback_data": f"now:{post_id}"}],
-        [{"text": "✏️ 재작성", "callback_data": f"rewrite:{post_id}"},
-         {"text": "🗑 폐기", "callback_data": f"discard:{post_id}"}],
-    ]}
-    msg = send_text(f"[{channel_name}] #{post_id} 검수 요청\n\n{caption}", reply_markup=keyboard)
+    if auto_note:  # 자동 게시 모드: 미리보기 + 취소 버튼
+        keyboard = {"inline_keyboard": [
+            [{"text": "🗑 취소(안 올리기)", "callback_data": f"discard:{post_id}"},
+             {"text": "🚀 지금 게시", "callback_data": f"now:{post_id}"}],
+            [{"text": "✏️ 재작성", "callback_data": f"rewrite:{post_id}"}],
+        ]}
+        head = f"[{channel_name}] #{post_id} 자동 예약 · {auto_note}"
+    else:
+        keyboard = {"inline_keyboard": [
+            [{"text": "✅ 승인(예약)", "callback_data": f"approve:{post_id}"},
+             {"text": "🚀 지금 게시", "callback_data": f"now:{post_id}"}],
+            [{"text": "✏️ 재작성", "callback_data": f"rewrite:{post_id}"},
+             {"text": "🗑 폐기", "callback_data": f"discard:{post_id}"}],
+        ]}
+        head = f"[{channel_name}] #{post_id} 검수 요청"
+    msg = send_text(f"{head}\n\n{caption}", reply_markup=keyboard)
     return msg["message_id"]
 
 
