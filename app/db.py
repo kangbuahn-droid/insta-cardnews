@@ -45,7 +45,7 @@ def connect() -> Iterator[sqlite3.Connection]:
     try:
         conn.executescript(SCHEMA)
         cols = {r[1] for r in conn.execute("PRAGMA table_info(posts)")}
-        for col in ("video", "video_url", "reels_media_id"):
+        for col in ("video", "video_url", "reels_media_id", "insights", "insights_at"):
             if col not in cols:
                 conn.execute(f"ALTER TABLE posts ADD COLUMN {col} TEXT")
         yield conn
@@ -110,3 +110,13 @@ def kv_get(k: str) -> str | None:
 def kv_set(k: str, v: str) -> None:
     with connect() as c:
         c.execute("INSERT INTO kv(k, v) VALUES(?, ?) ON CONFLICT(k) DO UPDATE SET v=excluded.v", (k, v))
+
+
+def published_since(since_iso: str, channel: str | None = None) -> list[sqlite3.Row]:
+    q = "SELECT * FROM posts WHERE status='published' AND published_at>=?"
+    args: list[Any] = [since_iso]
+    if channel:
+        q += " AND channel=?"
+        args.append(channel)
+    with connect() as c:
+        return list(c.execute(q + " ORDER BY published_at", args).fetchall())

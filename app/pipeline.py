@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import collector, db, ingest, instagram, reels, renderer, storage, telegram, writer
+from . import collector, db, ingest, instagram, performance, reels, renderer, storage, telegram, writer
 from .config import TZ, Channel, load_channels
 
 CHANNELS: dict[str, Channel] = load_channels()
@@ -133,6 +133,10 @@ def publish_due(now: datetime | None = None) -> None:
                 _notify(f"[{channel.display_name}] {slot} 게시 시간인데 승인된 글이 없어요. 글을 보내주세요.")
 
 
+def performance_due() -> None:
+    performance.weekly_due(CHANNELS, _notify)
+
+
 # ---------- 텔레그램 이벤트 ----------
 
 def handle_updates() -> None:
@@ -200,7 +204,7 @@ def _handle_message(msg: dict) -> None:
     if text.startswith("/start") or text.startswith("/help"):
         telegram.send_text(
             "블라인드 글을 그대로 붙여넣어 보내주세요.\n첫 줄 = 제목, 본문, 그리고 '---' 아래에 댓글을 한 줄씩.\n"
-            f"채널 지정: 첫 줄에 #채널이름 (가능: {', '.join(CHANNELS)})\n/collect 뉴스 바로 수집\n/status 대기열 확인"
+            f"채널 지정: 첫 줄에 #채널이름 (가능: {', '.join(CHANNELS)})\n/collect 뉴스 바로 수집\n/status 대기열 확인\n/report 최근 7일 성과(/report 30 처럼 기간 지정)"
         )
         return
     if text.startswith("/collect"):
@@ -221,6 +225,15 @@ def _handle_message(msg: dict) -> None:
             publish(int(parts[1]))
         else:
             telegram.send_text("사용법: /retry 글번호")
+        return
+    if text.startswith("/report"):
+        parts = text.split()
+        days = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 7
+        errors = performance.collect(CHANNELS, force=True)
+        for ch in CHANNELS.values():
+            telegram.send_text(performance.report(ch, days))
+        if errors:
+            telegram.send_text("일부 성과를 못 가져왔어요:\n" + "\n".join(errors[:3]))
         return
     if text.startswith("/status"):
         lines = []

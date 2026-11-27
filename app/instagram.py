@@ -109,6 +109,37 @@ def publishing_quota(channel: Channel) -> dict:
                  fields="quota_usage,config")
 
 
+# 게시물 성과. 계정/토큰 종류에 따라 지원 지표가 달라서 큰 목록부터 줄여가며 시도한다.
+INSIGHT_SETS = [
+    ["reach", "saved", "shares", "likes", "comments", "follows", "profile_visits", "views"],
+    ["reach", "saved", "shares", "likes", "comments", "follows"],
+    ["reach", "saved", "shares", "likes", "comments"],
+]
+
+
+def media_insights(channel: Channel, media_id: str) -> dict[str, int]:
+    token, last = _token(channel), None
+    for metrics in INSIGHT_SETS:
+        try:
+            data = _call("GET", f"{media_id}/insights", token, metric=",".join(metrics))
+        except InstagramError as e:
+            last = e
+            continue
+        out = {}
+        for m in data.get("data", []):
+            values = m.get("values") or [{}]
+            out[m["name"]] = int(values[0].get("value") or m.get("total_value", {}).get("value") or 0)
+        return out
+    raise last or InstagramError("insights 실패")
+
+
+def followers_count(channel: Channel) -> int | None:
+    try:
+        return int(_call("GET", channel.ig_user_id, _token(channel), fields="followers_count")["followers_count"])
+    except Exception:
+        return None
+
+
 def refresh_token_if_needed(channel: Channel) -> None:
     """장기 토큰(60일)을 50일마다 갱신. Instagram 로그인 방식에서만 동작."""
     if resolve_host(_token(channel), channel.ig_user_id)[0] != "graph.instagram.com":

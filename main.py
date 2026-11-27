@@ -5,6 +5,7 @@ python main.py preview inbox/sample.txt    # AI 작성 + 이미지 렌더만 로
 python main.py preview --script examples/sample_script.json   # AI 없이 템플릿만 확인
 python main.py collect ai_news             # 뉴스 수집만 테스트(AI 선별 포함, 카드는 안 만듦)
 python main.py quota                       # 인스타 24시간 게시 사용량
+python main.py report                      # 최근 7일 성과 리포트
 """
 from __future__ import annotations
 
@@ -84,6 +85,7 @@ def cmd_run() -> None:
                 pipeline.collect_due()
                 pipeline.prepare_new()
                 pipeline.publish_due()
+                pipeline.performance_due()
                 for ch in pipeline.CHANNELS.values():
                     instagram.refresh_token_if_needed(ch)
             except Exception:
@@ -119,6 +121,17 @@ def cmd_collect(channel_name: str) -> None:
         print(f"- [{it['source_name']}] {it['title']}\n  {it['url']}")
 
 
+def cmd_report() -> None:
+    from app import performance
+    from app.config import load_channels
+
+    channels = load_channels()
+    for e in performance.collect(channels, force=True):
+        print("error:", e)
+    for ch in channels.values():
+        print(performance.report(ch))
+
+
 def cmd_quota() -> None:
     from app import instagram
     from app.config import load_channels
@@ -138,6 +151,7 @@ if __name__ == "__main__":
     c = sub.add_parser("collect")
     c.add_argument("channel")
     sub.add_parser("quota")
+    sub.add_parser("report")
     args = parser.parse_args()
     if args.cmd == "run":
         cmd_run()
@@ -147,5 +161,7 @@ if __name__ == "__main__":
         cmd_preview(args.source, args.script, args.channel)
     elif args.cmd == "collect":
         cmd_collect(args.channel)
+    elif args.cmd == "report":
+        cmd_report()
     elif args.cmd == "quota":
         cmd_quota()

@@ -14,7 +14,7 @@ import feedparser
 import httpx
 import trafilatura
 
-from . import db, ingest
+from . import db, ingest, performance
 from .config import Channel
 from .writer import MODEL, _client
 
@@ -79,7 +79,7 @@ def pick(channel: Channel, items: list[dict], k: int) -> list[dict]:
     response = _client().beta.messages.create(
         model=MODEL,
         max_tokens=4000,
-        system=channel.persona + "\n" + channel.pick_rules,
+        system=channel.persona + "\n" + channel.pick_rules + performance.learning_hint(channel),
         messages=[{"role": "user", "content": f"아래 기사 중 {k}개를 골라라. 같은 사건은 하나만.\n\n{listing}"}],
         output_config={"effort": "low", "format": {"type": "json_schema", "schema": PICK_SCHEMA}},
         betas=["server-side-fallback-2026-07-01"],
