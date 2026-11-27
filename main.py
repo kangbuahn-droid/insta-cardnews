@@ -15,10 +15,47 @@ import traceback
 from pathlib import Path
 
 
+def preflight() -> list[str]:
+    """Check settings before starting. Messages are in English because the
+    Lightsail browser terminal cannot show Korean characters."""
+    import os
+    import httpx
+
+    problems = []
+    for name in ("ANTHROPIC_API_KEY", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "IG_USER_ID",
+                 "IG_ACCESS_TOKEN", "S3_ENDPOINT_URL", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY",
+                 "S3_BUCKET", "PUBLIC_BASE_URL"):
+        value = os.getenv(name, "")
+        if not value:
+            problems.append(f"{name} is empty in .env")
+        elif value != value.strip() or value.startswith(("'", '"')):
+            problems.append(f"{name} has spaces or quotes around it in .env - remove them")
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    if token:
+        try:
+            r = httpx.get(f"https://api.telegram.org/bot{token}/getMe", timeout=20)
+            if r.status_code == 401 or r.status_code == 404:
+                problems.append("TELEGRAM_BOT_TOKEN is wrong (Telegram says Unauthorized). "
+                                "Copy the whole token from BotFather again, e.g. 123456789:AAH...")
+        except Exception as e:
+            print(f"[warn] could not check Telegram token: {e}", flush=True)
+    return problems
+
+
 def cmd_run() -> None:
     from app import instagram, pipeline
 
-    print(f"[run] 채널: {', '.join(pipeline.CHANNELS)}")
+    while problems := preflight():
+        print("=" * 60)
+        print("SETUP PROBLEM - the bot is waiting until you fix .env:")
+        for p in problems:
+            print("  -", p)
+        print("Fix:  nano .env   then   docker compose up -d --force-recreate")
+        print("=" * 60, flush=True)
+        time.sleep(600)
+    print("[run] settings OK", flush=True)
+
+    print(f"[run] channels: {', '.join(pipeline.CHANNELS)}", flush=True)
     last_tick = 0.0
     while True:
         try:
