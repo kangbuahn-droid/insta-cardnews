@@ -66,6 +66,11 @@ def insert_post(channel: str, source_key: str, source: dict) -> int | None:
             return None  # 이미 들어온 글
 
 
+def exists(channel: str, source_key: str) -> bool:
+    with connect() as c:
+        return c.execute("SELECT 1 FROM posts WHERE channel=? AND source_key=?", (channel, source_key)).fetchone() is not None
+
+
 def update(post_id: int, **fields: Any) -> None:
     for k, v in list(fields.items()):
         if isinstance(v, (dict, list)):

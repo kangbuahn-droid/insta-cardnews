@@ -65,7 +65,7 @@
     <h1>{{ s.title | highlight }}</h1>
     {% if s.body %}<p>{{ s.body }}</p>{% endif %}
   </div>
-  <div class="footer"><span>사연 재구성</span><span class="swipe">옆으로 넘기기 →</span></div>
+  <div class="footer"><span>{{ cover_label }}</span><span class="swipe">옆으로 넘기기 →</span></div>
 </div>
 {% elif s.type == "reaction" %}
 <div class="frame reaction">

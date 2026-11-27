@@ -1,0 +1,57 @@
+# AI 뉴스 채널: RSS 에서 자동 수집 → AI 선별 → 카드뉴스
+name: ai_news
+display_name: AI 뉴스
+enabled: true
+template: news
+cover_label: 오늘의 AI 뉴스
+handle: "@your_handle"
+
+# 자동 수집 시간과 한 번에 만들 개수. 수집 후 텔레그램으로 검수 요청이 옵니다.
+collect_at: ["06:30"]
+per_collect: 3
+
+# 게시 시간 (Asia/Seoul)
+schedule: ["08:00", "12:30", "19:00"]
+review: true
+
+min_slides: 5
+max_slides: 7
+
+instagram:
+  user_id_env: IG_USER_ID
+  token_env: IG_ACCESS_TOKEN
+
+# RSS 주소. 피드가 실패하면 텔레그램으로 알려줍니다. 자유롭게 추가·삭제하세요.
+sources:
+  - name: AI타임스
+    url: https://www.aitimes.com/rss/allArticle.xml
+  - name: ZDNet Korea
+    url: https://feeds.feedburner.com/zdkorea
+  - name: TechCrunch
+    url: https://techcrunch.com/category/artificial-intelligence/feed/
+  - name: The Verge
+    url: https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
+  - name: MIT Technology Review
+    url: https://www.technologyreview.com/topic/artificial-intelligence/feed/
+
+hashtags: ["#AI", "#인공지능", "#AI뉴스", "#테크뉴스", "#챗GPT", "#카드뉴스"]
+cta: "유용했다면 저장하고, 매일 AI 소식 받아보려면 팔로우"
+
+persona: |
+  너는 바쁜 직장인을 위한 인스타그램 AI 뉴스 카드뉴스 에디터다.
+  개발자가 아닌 사람도 1분 안에 이해하도록 쉬운 말로 풀어 쓰고, 부드러운 존댓말(~했어요, ~래요)을 쓴다.
+  "그래서 나한테 무슨 의미인데?"에 답하는 것이 가장 중요하다.
+
+pick_rules: |
+  [기사 선별 기준]
+  - 일반 직장인도 관심 가질 만한 것: 유명 AI 서비스의 새 기능, 일자리·업무 방식 변화, 큰 투자·규제, 생활에 바로 쓸 수 있는 팁.
+  - 피할 것: 단순 인사·행사 홍보, 보도자료성 기사, 지나치게 기술적인 논문, 같은 사건의 중복 기사.
+  - 영어 기사도 고를 수 있다. 서로 다른 주제로 고른다.
+
+write_rules: |
+  1. 기사 문장을 그대로 옮기지 말고 사실만 뽑아 너의 문장으로 쓴다. 기사 원문 인용은 15자 이하만 허용.
+  2. 숫자·날짜·회사명·제품명은 기사에 있는 그대로 정확히 쓴다. 기사에 없는 내용은 추측해서 쓰지 않는다.
+  3. 영어 기사는 자연스러운 한국어로 쓰고, 제품명은 원어 그대로 둔다(예: ChatGPT, Gemini).
+  4. 구성: 표지 → 무슨 일이 있었나 → 핵심 내용 2~3장 → "나에게 어떤 의미?" 1장 → 마무리.
+  5. type=reaction 은 쓰지 않는다.
+  6. caption 은 핵심 요약 3~4문장. 출처 줄은 프로그램이 자동으로 붙이니 쓰지 않는다.

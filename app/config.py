@@ -41,6 +41,12 @@ class Channel:
     ig_token_env: str
     min_slides: int = 5
     max_slides: int = 8
+    write_rules: str = ""          # 채널별 작성 규칙(비면 기본 규칙)
+    pick_rules: str = ""           # 자동 수집 시 기사 선별 기준
+    cover_label: str = ""          # 표지 왼쪽 아래 문구
+    sources: list = field(default_factory=list)      # RSS 등 자동 수집 소스
+    collect_at: list = field(default_factory=list)   # 자동 수집 시간 "HH:MM"
+    per_collect: int = 3           # 한 번 수집할 때 만들 카드뉴스 수
     extra: dict = field(default_factory=dict)
 
     @property
@@ -74,6 +80,12 @@ def load_channels() -> dict[str, Channel]:
             ig_token_env=ig.get("token_env", "IG_ACCESS_TOKEN"),
             min_slides=int(raw.get("min_slides", 5)),
             max_slides=int(raw.get("max_slides", 8)),
+            write_rules=(raw.get("write_rules") or "").strip(),
+            pick_rules=(raw.get("pick_rules") or "").strip(),
+            cover_label=raw.get("cover_label", ""),
+            sources=raw.get("sources", []),
+            collect_at=[str(t) for t in raw.get("collect_at", [])],
+            per_collect=int(raw.get("per_collect", 3)),
             extra=raw.get("extra", {}),
         )
     return channels

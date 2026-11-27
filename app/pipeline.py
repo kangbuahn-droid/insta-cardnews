@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import db, ingest, instagram, renderer, storage, telegram, writer
+from . import collector, db, ingest, instagram, renderer, storage, telegram, writer
 from .config import TZ, Channel, load_channels
 
 CHANNELS: dict[str, Channel] = load_channels()
@@ -40,6 +40,26 @@ def prepare(post_id: int, feedback: str | None = None) -> None:
         traceback.print_exc()
         db.update(post_id, status="failed", error=str(e))
         _notify(f"#{post_id} 카드 생성 실패: {e}")
+
+
+def run_collect(channel: Channel, k: int | None = None) -> None:
+    try:
+        ids, warnings = collector.collect(channel, k)
+    except Exception as e:
+        traceback.print_exc()
+        _notify(f"[{channel.display_name}] 자동 수집 실패: {e}")
+        return
+    msg = f"[{channel.display_name}] 기사 {len(ids)}개 수집, 카드 만드는 중"
+    if warnings:
+        msg += "\n" + "\n".join(f"- {w}" for w in warnings[:5])
+    _notify(msg)
+
+
+def collect_due(now: datetime | None = None) -> None:
+    now = now or datetime.now(ZoneInfo(TZ))
+    for channel in CHANNELS.values():
+        if channel.sources and collector.due(channel, now):
+            run_collect(channel)
 
 
 def prepare_new() -> None:
@@ -145,8 +165,19 @@ def _handle_message(msg: dict) -> None:
     if text.startswith("/start") or text.startswith("/help"):
         telegram.send_text(
             "블라인드 글을 그대로 붙여넣어 보내주세요.\n첫 줄 = 제목, 본문, 그리고 '---' 아래에 댓글을 한 줄씩.\n"
-            f"채널 지정: 첫 줄에 #채널이름 (가능: {', '.join(CHANNELS)})\n/status 로 대기열 확인"
+            f"채널 지정: 첫 줄에 #채널이름 (가능: {', '.join(CHANNELS)})\n/collect 뉴스 바로 수집\n/status 대기열 확인"
         )
+        return
+    if text.startswith("/collect"):
+        parts = text.split()
+        names = [n for n in CHANNELS if CHANNELS[n].sources]
+        name = parts[1] if len(parts) > 1 and parts[1] in names else (names[0] if names else None)
+        if not name:
+            telegram.send_text("자동 수집 소스가 있는 채널이 없어요.")
+            return
+        telegram.send_text(f"[{CHANNELS[name].display_name}] 기사 수집 시작")
+        run_collect(CHANNELS[name])
+        prepare_new()
         return
     if text.startswith("/status"):
         lines = []
@@ -158,7 +189,7 @@ def _handle_message(msg: dict) -> None:
     if len(text) < 80:
         telegram.send_text("글이 너무 짧아요. 제목과 본문을 함께 보내주세요. (/help)")
         return
-    channel = next(iter(CHANNELS))
+    channel = next((n for n, c in CHANNELS.items() if not c.sources), next(iter(CHANNELS)))
     first, _, rest = text.partition("\n")
     if first.startswith("#") and first[1:].strip() in CHANNELS:
         channel, text = first[1:].strip(), rest

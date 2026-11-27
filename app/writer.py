@@ -32,17 +32,22 @@ SCRIPT_SCHEMA = {
     "additionalProperties": False,
 }
 
-RULES = """
-[작성 규칙]
+# 채널 yaml 에 write_rules 가 없을 때 쓰는 기본(사연형) 규칙
+DEFAULT_WRITE_RULES = """
 1. 원문을 그대로 옮기지 말고, 내용을 이해한 뒤 너의 문장으로 다시 써라. 원문 문장을 그대로 쓰는 것은 15자 이하의 짧은 인용만 허용한다.
 2. 회사명, 실명, 부서·직급으로 특정 가능한 정보, 연락처 등 개인을 알아볼 수 있는 정보는 모두 지우거나 일반화한다(예: "A사", "한 대기업").
 3. 욕설·비방·혐오 표현은 순화한다. 사실처럼 단정하지 말고 "~라는 사연", "~라고 해요"처럼 사연임을 드러낸다.
-4. 슬라이드 구성:
-   - 첫 장은 type=cover. title 은 스크롤을 멈추게 하는 후킹 문구(25자 이내, 가장 자극적인 단어 하나를 *별표*로 감싸 강조), body 는 한 줄 부제(30자 이내).
-   - 중간은 type=content 로 사연을 순서대로. title 은 소제목(18자 이내), body 는 2~4문장(110자 이내).
-   - 댓글이 있으면 type=reaction 한 장: title 은 "사람들 반응" 같은 제목, body 는 댓글 의견 2~3개를 요약·재작성해 줄바꿈(\\n)으로 구분.
-   - 마지막은 type=outro: title 은 독자에게 던지는 질문, body 는 행동 유도 문구.
-5. caption 은 인스타 본문용으로 3~5문장 + 마지막 줄에 출처 표기("출처: 직장인 커뮤니티 사연 재구성"). 해시태그는 caption 에 넣지 말고 hashtags 에 5~10개.
+4. 댓글이 있으면 type=reaction 한 장: title 은 "사람들 반응" 같은 제목, body 는 댓글 의견 2~3개를 요약·재작성해 줄바꿈(\\n)으로 구분.
+5. caption 마지막 줄에 "출처: 직장인 커뮤니티 사연 재구성"을 쓴다.
+"""
+
+LAYOUT_RULES = """
+[슬라이드 구성]
+- 첫 장은 type=cover. title 은 스크롤을 멈추게 하는 후킹 문구(25자 이내, 가장 눈에 띄어야 할 단어 하나를 *별표*로 감싸 강조), body 는 한 줄 부제(30자 이내).
+- 중간은 type=content. title 은 소제목(18자 이내), body 는 2~4문장(110자 이내).
+- type=reaction 은 채널 규칙에서 쓰라고 할 때만 쓴다.
+- 마지막은 type=outro: title 은 독자에게 던지는 질문, body 는 행동 유도 문구.
+- caption 은 인스타 본문용 3~5문장. 해시태그는 caption 에 넣지 말고 hashtags 에 5~10개.
 """
 
 
@@ -55,9 +60,10 @@ def write_script(channel: Channel, source: dict, feedback: str | None = None) ->
     user = (
         f"슬라이드 수: {channel.min_slides}~{channel.max_slides}장\n"
         f"마무리 행동 유도 문구 참고: {channel.cta}\n\n"
-        f"[원본 제목]\n{source.get('title', '')}\n\n"
-        f"[원본 본문]\n{source['body']}\n\n"
-        f"[댓글]\n{comments}\n"
+        + (f"[출처] {source.get('source_name', '')} {source.get('url', '')}\n\n" if source.get("url") else "")
+        + f"[원본 제목]\n{source.get('title', '')}\n\n"
+        + f"[원본 본문]\n{source['body']}\n\n"
+        + f"[댓글]\n{comments}\n"
     )
     if feedback:
         user += f"\n[이전 결과에 대한 수정 요청]\n{feedback}\n"
@@ -65,7 +71,7 @@ def write_script(channel: Channel, source: dict, feedback: str | None = None) ->
     response = _client().beta.messages.create(
         model=MODEL,
         max_tokens=8000,
-        system=channel.persona + "\n" + RULES,
+        system=channel.persona + "\n[작성 규칙]\n" + (channel.write_rules or DEFAULT_WRITE_RULES) + LAYOUT_RULES,
         messages=[{"role": "user", "content": user}],
         output_config={"effort": "medium", "format": {"type": "json_schema", "schema": SCRIPT_SCHEMA}},
         # 안전 분류기가 거절하면 서버가 다른 모델로 자동 재시도
@@ -79,6 +85,8 @@ def write_script(channel: Channel, source: dict, feedback: str | None = None) ->
     text = "".join(b.text for b in response.content if b.type == "text")
     script = json.loads(text)
     _normalize(script, channel)
+    if source.get("source_name") and "출처" not in script["caption"]:
+        script["caption"] = script["caption"].rstrip() + f"\n\n출처: {source['source_name']}"
     return script
 
 

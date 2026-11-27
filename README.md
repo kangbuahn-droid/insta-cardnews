@@ -89,6 +89,14 @@ python main.py preview examples/sample_post.txt               # AI 작성까지 
 
 `/status` 로 대기열 확인.
 
+## AI 뉴스 채널 (자동 수집)
+`channels/ai_news.yaml`의 `sources`에 있는 RSS에서 매일 `collect_at`(기본 06:30)에 최근 기사를 모읍니다. AI가 그중 `per_collect`개(기본 3개)를 골라 카드뉴스로 만들고, 텔레그램으로 검수 요청을 보내요. 승인하면 08:00, 12:30, 19:00에 하나씩 올라갑니다.
+
+- 텔레그램 `/collect` : 지금 바로 수집
+- 서버에서 `python main.py collect ai_news` : 어떤 기사가 뽑히는지만 확인(카드는 안 만듦)
+- 피드 주소가 바뀌어 실패하면 텔레그램으로 알려줍니다. `sources`에서 고치거나 빼면 됩니다.
+- 캡션 마지막 줄에 출처(매체명)가 자동으로 붙습니다.
+
 ## 새 채널 추가
 1. `channels/blind.yaml` 복사 → `name`, `persona`, `schedule`, `hashtags` 수정
 2. 다른 인스타 계정을 쓰면 `instagram.user_id_env`/`token_env`에 새 환경변수 이름을 적고 `.env`에 값 추가

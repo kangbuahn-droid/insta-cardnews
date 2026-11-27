@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root {
+    --bg: #F2F4F8;
+    --ink: #0E1426;
+    --muted: #6B6B73;
+    --accent: #3D6BFF;
+    --card: #FFFFFF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1350px; }
+  body {
+    font-family: "Pretendard", "Noto Sans CJK KR", "Noto Sans KR", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .frame { position: relative; width: 1080px; height: 1350px; padding: 110px 96px; display: flex; flex-direction: column; }
+  .top { display: flex; justify-content: space-between; align-items: center; font-size: 30px; font-weight: 600; color: var(--muted); }
+  .tag { background: var(--ink); color: #fff; padding: 12px 26px; border-radius: 999px; font-size: 28px; }
+  .footer { position: absolute; left: 96px; right: 96px; bottom: 80px; display: flex; justify-content: space-between; font-size: 28px; color: var(--muted); font-weight: 500; }
+
+  /* 표지 */
+  .cover { background: var(--ink); color: #fff; }
+  .cover .top { color: rgba(255,255,255,.6); }
+  .cover .tag { background: var(--accent); }
+  .cover .main { margin-top: auto; margin-bottom: 140px; }
+  .cover h1 { font-size: 104px; line-height: 1.22; font-weight: 800; letter-spacing: -3px; }
+  .cover h1 em { font-style: normal; color: var(--accent); }
+  .cover p { margin-top: 44px; font-size: 40px; line-height: 1.5; color: rgba(255,255,255,.75); font-weight: 500; }
+  .cover .footer { color: rgba(255,255,255,.5); }
+  .swipe { font-weight: 700; color: var(--accent); }
+
+  /* 본문 */
+  .content .num { margin-top: 90px; font-size: 120px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .content h2 { margin-top: 36px; font-size: 72px; line-height: 1.3; font-weight: 800; letter-spacing: -2px; }
+  .content p { margin-top: 56px; font-size: 46px; line-height: 1.7; font-weight: 500; color: #2D2D33; white-space: pre-line; }
+
+  /* 반응 */
+  .reaction h2 { margin-top: 90px; font-size: 72px; font-weight: 800; letter-spacing: -2px; }
+  .bubbles { margin-top: 64px; display: flex; flex-direction: column; gap: 32px; }
+  .bubble { background: var(--card); border-radius: 36px; padding: 40px 48px; font-size: 40px; line-height: 1.55; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,.06); }
+  .bubble:nth-child(even) { margin-left: 80px; background: #E3EAFF; }
+
+  /* 마무리 */
+  .outro { background: var(--accent); color: #fff; }
+  .outro .top { color: rgba(255,255,255,.8); }
+  .outro .main { margin: auto 0; }
+  .outro h2 { font-size: 88px; line-height: 1.3; font-weight: 800; letter-spacing: -2px; }
+  .outro p { margin-top: 56px; font-size: 44px; line-height: 1.6; font-weight: 600; }
+  .outro .footer { color: rgba(255,255,255,.85); }
+</style>
+</head>
+<body>
+{% set s = slide %}
+{% if s.type == "cover" %}
+<div class="frame cover">
+  <div class="top"><span class="tag">{{ channel_name }}</span><span>{{ handle }}</span></div>
+  <div class="main">
+    <h1>{{ s.title | highlight }}</h1>
+    {% if s.body %}<p>{{ s.body }}</p>{% endif %}
+  </div>
+  <div class="footer"><span>{{ cover_label }}</span><span class="swipe">옆으로 넘기기 →</span></div>
+</div>
+{% elif s.type == "reaction" %}
+<div class="frame reaction">
+  <div class="top"><span class="tag">{{ channel_name }}</span><span>{{ index }} / {{ total }}</span></div>
+  <h2>{{ s.title }}</h2>
+  <div class="bubbles">
+    {% for line in s.body.split("\n") if line.strip() %}<div class="bubble">{{ line.strip().lstrip("-• ") }}</div>{% endfor %}
+  </div>
+  <div class="footer"><span>{{ handle }}</span><span>{{ index }} / {{ total }}</span></div>
+</div>
+{% elif s.type == "outro" %}
+<div class="frame outro">
+  <div class="top"><span class="tag">{{ channel_name }}</span><span>{{ handle }}</span></div>
+  <div class="main">
+    <h2>{{ s.title }}</h2>
+    {% if s.body %}<p>{{ s.body }}</p>{% endif %}
+  </div>
+  <div class="footer"><span>팔로우하고 매일 받아보기</span><span>{{ handle }}</span></div>
+</div>
+{% else %}
+<div class="frame content">
+  <div class="top"><span class="tag">{{ channel_name }}</span><span>{{ index }} / {{ total }}</span></div>
+  <div class="num">{{ "%02d" % (content_no) }}</div>
+  <h2>{{ s.title }}</h2>
+  <p>{{ s.body }}</p>
+  <div class="footer"><span>{{ handle }}</span><span>{{ index }} / {{ total }}</span></div>
+</div>
+{% endif %}
+</body>
+</html>

@@ -41,6 +41,7 @@ def render_html(channel: Channel, script: dict) -> list[str]:
                 content_no=content_no,
                 channel_name=channel.display_name,
                 handle=channel.handle,
+                cover_label=channel.cover_label,
             )
         )
     return pages

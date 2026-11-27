@@ -2,8 +2,9 @@
 # 새 채널은 이 파일을 복사해서 이름/persona/계정 환경변수만 바꾸면 됩니다.
 name: blind
 display_name: 직장인 썰
-enabled: true
+enabled: false   # 인스타 계정이 하나라 지금은 AI 뉴스 채널만 사용. 계정을 추가하면 true 로
 template: default          # templates/<이름>/card.html
+cover_label: 사연 재구성
 handle: "@your_handle"     # 카드 하단에 표시할 인스타 아이디
 
 # 게시 시간 (Asia/Seoul). 승인된 글이 이 시간에 하나씩 올라갑니다.
