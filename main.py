@@ -64,7 +64,8 @@ def preflight() -> list[str]:
             if r.status_code == 401:
                 print("[warn] OPENAI_API_KEY is wrong (401) - cards will be made without AI pictures", flush=True)
             else:
-                print("[run] OpenAI key OK", flush=True)
+                from app.images import _openai_models
+                print(f"[run] OpenAI key OK, image models to try: {', '.join(_openai_models()[:4])}", flush=True)
         except Exception as e:
             print(f"[warn] could not check OpenAI key: {e}", flush=True)
     return problems
