@@ -53,7 +53,7 @@ DEFAULT_WRITE_RULES = """
 LAYOUT_RULES = """
 [슬라이드 구성]
 - 첫 장은 type=cover. title 은 스크롤을 멈추게 하는 후킹 문구(25자 이내, 가장 눈에 띄어야 할 단어 하나를 *별표*로 감싸 강조), body 는 한 줄 부제(30자 이내).
-- 중간은 type=content. title 은 소제목(18자 이내), body 는 2~4문장(110자 이내).
+- 중간은 type=content. title 은 소제목(18자 이내), body 는 2~4문장(110자 이내). 단, 채널 규칙에 다른 길이·형식이 있으면 채널 규칙을 따른다.
 - type=reaction 은 채널 규칙에서 쓰라고 할 때만 쓴다.
 - 마지막은 type=outro: title 은 독자에게 던지는 질문, body 는 행동 유도 문구.
 - caption 은 인스타 본문용 3~5문장. 해시태그는 caption 에 넣지 말고 hashtags 에 5~10개.
@@ -86,7 +86,7 @@ def write_script(channel: Channel, source: dict, feedback: str | None = None) ->
         max_tokens=8000,
         system=channel.persona + "\n[작성 규칙]\n" + (channel.write_rules or DEFAULT_WRITE_RULES) + LAYOUT_RULES,
         messages=[{"role": "user", "content": user}],
-        output_config={"effort": "medium", "format": {"type": "json_schema", "schema": SCRIPT_SCHEMA}},
+        output_config={"effort": env("WRITER_EFFORT", "high"), "format": {"type": "json_schema", "schema": SCRIPT_SCHEMA}},
         # 안전 분류기가 거절하면 서버가 다른 모델로 자동 재시도
         betas=["server-side-fallback-2026-07-01"],
         fallbacks="default",

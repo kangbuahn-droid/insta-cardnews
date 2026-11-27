@@ -58,11 +58,11 @@ def plan(channel: Channel, k: int | None = None, idea: str | None = None) -> tup
                f"오늘 날짜: {datetime.now():%Y-%m-%d}")
     response = _client().beta.messages.create(
         model=MODEL,
-        max_tokens=4000,
+        max_tokens=8000,
         system=channel.persona + "\n" + channel.pick_rules + performance.learning_hint(channel),
         messages=[{"role": "user", "content": (
             f"{ask}\n\n이미 다룬 주제(겹치지 말 것):\n{past}\n\n"
-            "title 은 저장하고 싶어지는 구체적인 제목, outline 은 슬라이드에 담을 팁·단계·예시 프롬프트를 5~8줄로.")}],
+            "title 은 저장하고 싶어지는 구체적인 제목. outline 은 기획 기준에 맞춰 단계·설정·예시·주의점을 10~15줄로 자세히.")}],
         output_config={"effort": "medium", "format": {"type": "json_schema", "schema": PLAN_SCHEMA}},
         betas=["server-side-fallback-2026-07-01"],
         fallbacks="default",

@@ -60,6 +60,12 @@
   .num i { width:56px; height:6px; border-radius:3px; background:linear-gradient(90deg,var(--a1),var(--a2)); display:inline-block; }
   .content h2 { margin-top:22px; font-size:68px; line-height:1.25; font-weight:800; letter-spacing:-2px; }
   .content .desc { margin-top:26px; font-size:40px; line-height:1.6; font-weight:500; color:#1F2937; white-space:pre-line; }
+  .content .desc.long { font-size:36px; line-height:1.62; }
+  .content .desc.check { margin-top:36px; padding:44px 48px; border-radius:36px; background:rgba(255,255,255,.85);
+                         box-shadow:0 24px 60px rgba(15,23,42,.08); font-size:38px; line-height:1.9; font-weight:600; }
+  .content .desc.panel { margin-top:44px; padding:48px 52px; border-radius:36px; background:rgba(255,255,255,.85);
+                         box-shadow:0 24px 60px rgba(15,23,42,.08); font-size:44px; line-height:1.75; }
+  .content .desc.panel.long { font-size:40px; line-height:1.72; }
   .stack { flex:1; min-height:0; margin-top:40px; display:flex; flex-direction:column; gap:30px; }
   .stack.solo { justify-content:center; }
   .stack.solo .prompt p { font-size:38px; }
@@ -130,9 +136,9 @@
   <div class="blob b1"></div><div class="blob b2"></div><div class="dots"></div>
   {% if not art %}<div class="watermark">{{ "%02d" % content_no }}</div>{% endif %}
   <div class="top"><span class="tag">{{ channel_name }}</span><span>{{ index }} / {{ total }}</span></div>
-  <div class="num"><i></i>TIP {{ "%02d" % content_no }}</div>
+  <div class="num"><i></i>{% if '✓' in (s.body or '') %}SUMMARY{% else %}TIP {{ "%02d" % content_no }}{% endif %}</div>
   <h2>{{ s.title }}</h2>
-  {% if s.body %}<div class="desc">{{ s.body }}</div>{% endif %}
+  {% if s.body %}<div class="desc{% if '✓' in s.body %} check{% else %}{% if not (art or s.prompt) %} panel{% endif %}{% if s.body|length > 110 %} long{% endif %}{% endif %}">{{ s.body }}</div>{% endif %}
   {% if art or s.prompt %}
   <div class="stack{% if not art %} solo{% endif %}">
     {% if art %}<div class="art"><img src="{{ art }}">{% if s.image_mode == "example" %}<span class="badge">✨ 아래 프롬프트로 만든 결과</span>{% endif %}</div>{% endif %}
