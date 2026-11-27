@@ -35,5 +35,6 @@ echo "Auto update is ON (checks GitHub every 5 minutes)."
 # 지금 바로 한 번 적용
 git stash push -q -m "before auto-update setup" 2>/dev/null || true
 git pull -q --ff-only || true
+git log -1 --format='%cd %s' --date=format:'%m/%d %H:%M' > data/version.txt
 if docker info >/dev/null 2>&1; then docker compose up -d --build --force-recreate; else sudo docker compose up -d --build --force-recreate; fi
 echo "DONE. From now on, code updates are applied automatically."

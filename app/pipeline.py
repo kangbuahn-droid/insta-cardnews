@@ -251,7 +251,7 @@ def _handle_message(msg: dict) -> None:
     if text.startswith("/start") or text.startswith("/help"):
         telegram.send_text(
             "블라인드 글을 그대로 붙여넣어 보내주세요.\n첫 줄 = 제목, 본문, 그리고 '---' 아래에 댓글을 한 줄씩.\n"
-            f"채널 지정: 첫 줄에 #채널이름 (가능: {', '.join(CHANNELS)})\n/collect 새 콘텐츠 바로 만들기\n/tip 주제 원하는 주제로 하나 만들기\n/auto on·off 자동 게시 켜기·끄기\n/status 대기열 확인\n/report 최근 7일 성과(/report 30 처럼 기간 지정)"
+            f"채널 지정: 첫 줄에 #채널이름 (가능: {', '.join(CHANNELS)})\n/collect 새 콘텐츠 바로 만들기\n/tip 주제 원하는 주제로 하나 만들기\n/auto on·off 자동 게시 켜기·끄기\n/version 적용된 버전 확인\n/status 대기열 확인\n/report 최근 7일 성과(/report 30 처럼 기간 지정)"
         )
         return
     if text.startswith("/collect"):
@@ -277,6 +277,12 @@ def _handle_message(msg: dict) -> None:
             prepare(ids[0])
         else:
             telegram.send_text("이미 같은 제목의 글이 있어서 만들지 않았어요. 조금 다르게 적어 주세요.")
+        return
+    if text.startswith("/version"):
+        from .config import DATA_DIR
+        vf = DATA_DIR / "version.txt"
+        telegram.send_text(f"지금 적용된 버전: {vf.read_text(encoding='utf-8').strip()}" if vf.exists() else
+                           "자동 업데이트가 아직 설치되지 않았어요. 서버에서 설치 명령을 한 번 실행해 주세요.")
         return
     if text.startswith("/auto"):
         arg = text[5:].strip().lower()

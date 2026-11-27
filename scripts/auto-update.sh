@@ -30,6 +30,7 @@ if ! git merge -q --ff-only "origin/$branch"; then
   exit 1
 fi
 summary=$(git log --format='- %s' "$local_rev..$remote_rev" | head -5)
+git log -1 --format='%cd %s' --date=format:'%m/%d %H:%M' > data/version.txt
 if docker_cmd compose up -d --build --force-recreate >/tmp/insta-cardnews-build.log 2>&1; then
   notify "🔄 새 기능이 적용됐어요
 $summary"
