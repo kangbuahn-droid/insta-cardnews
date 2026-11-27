@@ -43,26 +43,17 @@ def preflight() -> list[str]:
     if ig_id and not ig_id.isdigit():
         problems.append(f"IG_USER_ID must be a number, not the account name ('{ig_id[:20]}')")
     ig_token = os.getenv("IG_ACCESS_TOKEN", "").strip()
-    host = os.getenv("IG_GRAPH_HOST", "graph.instagram.com")
-    version = os.getenv("IG_API_VERSION", "v23.0")
-    if ig_token.startswith("EAA") and host == "graph.instagram.com":
-        problems.append("IG_ACCESS_TOKEN starts with EAA = Facebook token. This bot needs the Instagram "
-                        "token that starts with IGAA: Meta app > Instagram > API setup with Instagram login "
-                        "> 2. Generate access token > Generate token")
-    elif ig_token:
-        try:
-            r = httpx.get(f"https://{host}/{version}/me", params={"fields": "user_id,username",
-                          "access_token": ig_token}, timeout=20)
-            data = r.json()
-            if "error" in data and data["error"].get("code") != 190:
-                print(f"[warn] Instagram check: {data['error'].get('message', '')[:120]}", flush=True)
-            elif "error" in data:
-                problems.append("IG_ACCESS_TOKEN is wrong: " + data["error"].get("message", "")[:80]
-                                + ". Generate a new token in Meta app > Instagram API > Generate token")
-            elif data.get("user_id") and str(data["user_id"]) != ig_id:
-                problems.append(f"IG_USER_ID should be {data['user_id']} (account @{data.get('username')})")
-        except Exception as e:
-            print(f"[warn] could not check Instagram token: {e}", flush=True)
+    if ig_token and ig_id.isdigit():
+        if "\u25cf" in ig_token or "*" in ig_token:
+            problems.append("IG_ACCESS_TOKEN contains masked dots - use the Copy button in Meta, not drag-select")
+        else:
+            from app.instagram import resolve_host
+            host, err = resolve_host(ig_token, ig_id)
+            if host:
+                print(f"[run] Instagram OK via {host}", flush=True)
+            else:
+                problems.append(f"Instagram rejected IG_ACCESS_TOKEN / IG_USER_ID: {err[:100]}. "
+                                "Generate a new token and copy it with the Copy button")
     return problems
 
 

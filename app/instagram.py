@@ -1,7 +1,6 @@
 """Instagram Graph API 로 캐러셀을 게시한다.
 
-기본은 'Instagram 로그인 방식'(graph.instagram.com). 페이스북 페이지 연동 방식을 쓰면
-.env 에 IG_GRAPH_HOST=graph.facebook.com 으로 바꾸면 된다.
+토큰에 맞는 주소(graph.instagram.com / graph.facebook.com)를 자동으로 찾는다.
 순서: 이미지별 자식 컨테이너 생성 → 처리 완료 대기 → 캐러셀 컨테이너 → publish
 """
 from __future__ import annotations
@@ -14,9 +13,32 @@ import httpx
 from . import db
 from .config import Channel, env
 
-HOST = env("IG_GRAPH_HOST", "graph.instagram.com")
 VERSION = env("IG_API_VERSION", "v23.0")
-BASE = f"https://{HOST}/{VERSION}"
+HOSTS = ["graph.instagram.com", "graph.facebook.com"]
+_host_cache: dict[str, str] = {}
+
+
+def resolve_host(token: str, user_id: str) -> tuple[str | None, str]:
+    """토큰이 통하는 주소를 찾는다. (host, 마지막 오류) 반환.
+    IG_GRAPH_HOST 를 지정하면 그 주소부터, 안 되면 다른 주소도 시도한다."""
+    if token in _host_cache:
+        return _host_cache[token], ""
+    fixed = (env("IG_GRAPH_HOST") or "auto").strip()
+    hosts = HOSTS if fixed in ("", "auto") else [fixed] + [h for h in HOSTS if h != fixed]
+    last_err = ""
+    for host in hosts:
+        try:
+            r = httpx.get(f"https://{host}/{VERSION}/{user_id}",
+                          params={"fields": "id,username", "access_token": token}, timeout=20)
+            data = r.json()
+        except Exception as e:
+            last_err = str(e)
+            continue
+        if "error" not in data:
+            _host_cache[token] = host
+            return host, ""
+        last_err = data["error"].get("message", "")
+    return None, last_err
 
 
 class InstagramError(RuntimeError):
@@ -29,9 +51,10 @@ def _token(channel: Channel) -> str:
 
 
 def _call(method: str, path: str, token: str, **params) -> dict:
+    host = _host_cache.get(token) or resolve_host(token, env("IG_USER_ID", "me"))[0] or HOSTS[0]
     params["access_token"] = token
     with httpx.Client(timeout=60) as client:
-        r = client.request(method, f"{BASE}/{path}", params=params if method == "GET" else None,
+        r = client.request(method, f"https://{host}/{VERSION}/{path}", params=params if method == "GET" else None,
                            data=params if method == "POST" else None)
     data = r.json()
     if r.status_code >= 400 or "error" in data:
@@ -88,7 +111,7 @@ def publishing_quota(channel: Channel) -> dict:
 
 def refresh_token_if_needed(channel: Channel) -> None:
     """장기 토큰(60일)을 50일마다 갱신. Instagram 로그인 방식에서만 동작."""
-    if HOST != "graph.instagram.com":
+    if resolve_host(_token(channel), channel.ig_user_id)[0] != "graph.instagram.com":
         return
     key = f"token_refreshed_at:{channel.ig_token_env}"
     last = db.kv_get(key)
