@@ -2,7 +2,8 @@
 
 음악은 music/<분위기>/ 폴더의 mp3·m4a·wav 중 하나를 무작위로 고른다.
 분위기: upbeat(밝음) · calm(차분) · serious(진지) · tense(긴장)
-해당 분위기 폴더가 비어 있으면 music/ 아래 아무 곡이나, 그것도 없으면 무음으로 만든다.
+해당 분위기 폴더가 비어 있으면 프로그램이 분위기에 맞는 곡을 직접 작곡해서 깐다(music_gen).
+MUSIC_SOURCE=folder 로 두면 예전처럼 music/ 아래 아무 곡이나 쓴다. MUSIC_SOURCE=none 이면 무음.
 저작권 문제가 없는 곡(YouTube 오디오 보관함, Pixabay Music 등)만 넣을 것.
 """
 from __future__ import annotations
@@ -11,7 +12,8 @@ import random
 import subprocess
 from pathlib import Path
 
-from .config import ROOT, Channel
+from . import music_gen
+from .config import ROOT, Channel, env
 
 MUSIC_DIR = ROOT / "music"
 MOODS = ["upbeat", "calm", "serious", "tense"]
@@ -21,11 +23,19 @@ W, H, FPS = 1080, 1920, 30
 COVER_SEC, SLIDE_SEC, FADE = 3.5, 3.0, 0.4
 
 
-def pick_music(mood: str) -> Path | None:
+def pick_music(mood: str, work_dir: Path | None = None) -> Path | None:
     def tracks(folder: Path) -> list[Path]:
         return [p for p in folder.rglob("*") if p.suffix.lower() in AUDIO_EXT] if folder.exists() else []
 
-    return random.choice(tracks(MUSIC_DIR / mood) or tracks(MUSIC_DIR) or [None])
+    source = (env("MUSIC_SOURCE") or "auto").lower()
+    if source == "none":
+        return None
+    if own := tracks(MUSIC_DIR / mood):
+        return random.choice(own)
+    if source == "folder" or work_dir is None:
+        return random.choice(tracks(MUSIC_DIR) or [None])
+    # 분위기에 맞는 곡을 새로 작곡(게시물마다 다른 곡)
+    return music_gen.generate(mood, work_dir / f"music-{mood}.wav", seconds=40, seed=random.randrange(1 << 30))
 
 
 def make_video(channel: Channel, images: list[Path], mood: str, out: Path, bg: str | None = None) -> tuple[Path, Path | None]:
@@ -33,7 +43,7 @@ def make_video(channel: Channel, images: list[Path], mood: str, out: Path, bg: s
     bg = bg or channel.extra.get("reels_bg", "0x0E1426")
     durations = [COVER_SEC] + [SLIDE_SEC] * (len(images) - 1)
     total = sum(durations) - FADE * (len(images) - 1)
-    music = pick_music(mood)
+    music = pick_music(mood, out.parent)
 
     cmd = ["ffmpeg", "-y", "-loglevel", "error"]
     for img, d in zip(images, durations):

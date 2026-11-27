@@ -41,7 +41,8 @@ def prepare(post_id: int, feedback: str | None = None) -> None:
                 mood = script.get("mood", "calm")
                 video, music = reels.make_video(channel, images, mood, images[0].parent / "reels.mp4")
                 db.update(post_id, video=str(video), video_url=None)
-                video_note = f"(분위기: {mood}, 음악: {music.name if music else '없음 - music 폴더에 곡을 넣어주세요'})"
+                music_name = ("자동 작곡" if music.name.startswith("music-") else music.name) if music else "없음"
+                video_note = f"(분위기: {mood}, 음악: {music_name})"
             except Exception as e:
                 traceback.print_exc()
                 _notify(f"#{post_id} 릴스 영상 생성 실패(캐러셀만 진행): {e}")
