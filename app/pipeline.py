@@ -278,6 +278,10 @@ def _handle_message(msg: dict) -> None:
         else:
             telegram.send_text("이미 같은 제목의 글이 있어서 만들지 않았어요. 조금 다르게 적어 주세요.")
         return
+    if text.startswith("/whereami"):
+        from . import whereami
+        telegram.send_text(whereami.report())
+        return
     if text.startswith("/version"):
         from .config import DATA_DIR
         vf = DATA_DIR / "version.txt"
